@@ -10,24 +10,20 @@ namespace NHibernate.AspNet.Identity.Helpers
 {
     public static class MappingHelper
     {
-
-        /// <summary>
-        /// Gets a mapping that can be used with NHibernate.
-        /// </summary>
-        /// <param name="additionalTypes">Additional Types that are to be added to the mapping, this is useful for adding your ApplicationUser class</param>
-        /// <returns></returns>
         public static HbmMapping GetIdentityMappings(System.Type[] additionalTypes)
         {
             var baseEntityToIgnore = new[] { 
-                typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<int>), 
-                typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<string>), 
+                //typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<int>), 
+                //typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<string>), 
+                typeof(IdentityRole<string>)
             };
 
             var allEntities = new List<System.Type> { 
-                typeof(IdentityUser), 
+                //typeof(IdentityUser), 
                 typeof(IdentityRole), 
-                typeof(IdentityUserLogin), 
-                typeof(IdentityUserClaim),
+                //typeof(IdentityRole<TKey>), 
+                //typeof(IdentityUserLogin), 
+                //typeof(IdentityUserClaim),
             };
             allEntities.AddRange(additionalTypes);
 
@@ -35,9 +31,44 @@ namespace NHibernate.AspNet.Identity.Helpers
             DefineBaseClass(mapper, baseEntityToIgnore.ToArray());
             mapper.IsComponent((type, declared) => typeof(NHibernate.AspNet.Identity.DomainModel.ValueObject).IsAssignableFrom(type));
 
-            mapper.AddMapping<IdentityUserMap>();
+            //mapper.AddMapping<IdentityUserMap>();
             mapper.AddMapping<IdentityRoleMap>();
-            mapper.AddMapping<IdentityUserClaimMap>();
+            //mapper.AddMapping<IdentityRoleMap<TKey>>();
+            //mapper.AddMapping<IdentityUserClaimMap>();
+
+            return mapper.CompileMappingFor(allEntities);
+        }
+
+        /// <summary>
+        /// Gets a mapping that can be used with NHibernate.
+        /// </summary>
+        /// <param name="additionalTypes">Additional Types that are to be added to the mapping, this is useful for adding your ApplicationUser class</param>
+        /// <returns></returns>
+        public static HbmMapping GetIdentityMappings<TKey>(System.Type[] additionalTypes)
+        {
+            var baseEntityToIgnore = new[] { 
+                //typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<int>), 
+                //typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<string>), 
+                typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<TKey>)
+            };
+
+            var allEntities = new List<System.Type> { 
+                //typeof(IdentityUser), 
+                //typeof(IdentityRole), 
+                typeof(IdentityRole<TKey>), 
+                //typeof(IdentityUserLogin), 
+                //typeof(IdentityUserClaim),
+            };
+            allEntities.AddRange(additionalTypes);
+
+            var mapper = new ConventionModelMapper();
+            DefineBaseClass(mapper, baseEntityToIgnore.ToArray());
+            mapper.IsComponent((type, declared) => typeof(NHibernate.AspNet.Identity.DomainModel.ValueObject).IsAssignableFrom(type));
+
+            //mapper.AddMapping<IdentityUserMap>();
+            mapper.AddMapping<IdentityRoleMap<TKey>>();
+            //mapper.AddMapping<IdentityRoleMap<TKey>>();
+            //mapper.AddMapping<IdentityUserClaimMap>();
 
             return mapper.CompileMappingFor(allEntities);
         }

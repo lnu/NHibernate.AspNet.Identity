@@ -21,7 +21,7 @@ namespace NHibernate.AspNet.Web
                 typeof(ApplicationUser)
             };
 
-            var mapping = MappingHelper.GetIdentityMappings(internalTypes);
+            var mapping = MappingHelper.GetIdentityMappings<string>(internalTypes);
             System.Diagnostics.Debug.WriteLine(mapping.AsString());
 
             var configuration = NHibernateSession.Init(storage, mapping);

@@ -7,7 +7,21 @@ using NHibernate.Linq;
 
 namespace NHibernate.AspNet.Identity
 {
-    public class RoleStore<TRole> : IQueryableRoleStore<TRole>, IRoleStore<TRole>, IDisposable where TRole : IdentityRole
+    public class RoleStore<TRole> : RoleStore<TRole, string>, IQueryableRoleStore<TRole>
+       where TRole : IdentityRole, new()
+    {
+        /// <summary>
+        ///     Constructor
+        /// </summary>
+        /// <param name="context"></param>
+        public RoleStore(ISession context)
+            : base(context)
+        {
+        }
+    }
+
+    public class RoleStore<TRole, TKey> : IQueryableRoleStore<TRole, TKey>
+        where TRole : IdentityRole<TKey>, new()
     {
         private bool _disposed;
 
@@ -27,7 +41,7 @@ namespace NHibernate.AspNet.Identity
             this.Context = context;
         }
 
-        public virtual Task<TRole> FindByIdAsync(string roleId)
+        public virtual Task<TRole> FindByIdAsync(TKey roleId)
         {
             this.ThrowIfDisposed();
             return Task.FromResult(Context.Get<TRole>((object)roleId));
@@ -39,7 +53,7 @@ namespace NHibernate.AspNet.Identity
             return Task.FromResult<TRole>(Queryable.FirstOrDefault<TRole>(Queryable.Where<TRole>(this.Context.Query<TRole>(), (Expression<Func<TRole, bool>>)(u => u.Name.ToUpper() == roleName.ToUpper()))));
         }
 
-        public virtual  Task CreateAsync(TRole role)
+        public virtual Task CreateAsync(TRole role)
         {
             this.ThrowIfDisposed();
             if ((object)role == null)

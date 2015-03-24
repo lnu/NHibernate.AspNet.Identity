@@ -6,6 +6,7 @@ using NHibernate.AspNet.Identity.Tests.Models;
 using NHibernate.Cfg;
 using NHibernate.Mapping.ByCode;
 using NHibernate.Tool.hbm2ddl;
+using NHibernate.AspNet.Identity.Helpers;
 
 namespace NHibernate.AspNet.Identity.Tests
 {
@@ -26,38 +27,47 @@ namespace NHibernate.AspNet.Identity.Tests
         {
             Name = "NHibernate.AspNet.Identity";
 
-            var baseEntityToIgnore = new[] { 
-                typeof(SharpArch.Domain.DomainModel.Entity), 
-                typeof(EntityWithTypedId<int>), 
-                typeof(EntityWithTypedId<string>), 
+            //var baseEntityToIgnore = new[] { 
+            //    typeof(SharpArch.Domain.DomainModel.Entity), 
+            //    typeof(EntityWithTypedId<int>), 
+            //    typeof(EntityWithTypedId<string>), 
+            //    typeof(EntityWithTypedId<Guid>), 
+            //};
+
+            //var allEntities = new[] { 
+            //    //typeof(IdentityUser), 
+            //    //typeof(ApplicationUser), 
+            //    //typeof(IdentityRole), 
+            //    typeof(IdentityRole<Guid>), 
+            //    //typeof(IdentityUserLogin), 
+            //    //typeof(IdentityUserClaim), 
+            //    //typeof(Foo), 
+            //};
+
+            //var mapper = new ConventionModelMapper();
+            //DefineBaseClass(mapper, baseEntityToIgnore);
+            //mapper.IsComponent((type, declared) => typeof(ValueObject).IsAssignableFrom(type));
+
+            ////mapper.AddMapping<IdentityUserMap>();
+            //mapper.AddMapping<IdentityRoleMap>();
+            //mapper.AddMapping<IdentityRoleMap<Guid>>();
+            ////mapper.AddMapping<IdentityUserClaimMap>();
+
+            //var mapping = mapper.CompileMappingForEach(allEntities);
+
+            var internalTypes = new[] {
+                typeof(IdentityRole)
             };
-
-            var allEntities = new[] { 
-                typeof(IdentityUser), 
-                typeof(ApplicationUser), 
-                typeof(IdentityRole), 
-                typeof(IdentityUserLogin), 
-                typeof(IdentityUserClaim), 
-                typeof(Foo), 
-            };
-
-            var mapper = new ConventionModelMapper();
-            DefineBaseClass(mapper, baseEntityToIgnore);
-            mapper.IsComponent((type, declared) => typeof(ValueObject).IsAssignableFrom(type));
-
-            mapper.AddMapping<IdentityUserMap>();
-            mapper.AddMapping<IdentityRoleMap>();
-            mapper.AddMapping<IdentityUserClaimMap>();
-
-            var mapping = mapper.CompileMappingForEach(allEntities);
+            var mapping = MappingHelper.GetIdentityMappings(internalTypes);
 
             _configuration = new Configuration();
             _configuration.Configure("sqlite-nhibernate-config.xml");
-            foreach (var map in mapping)
-            {
-                Console.WriteLine(map.AsString());
-                _configuration.AddDeserializedMapping(map, null);
-            }
+            //foreach (var map in mapping)
+            //{
+            //    Console.WriteLine(map.AsString());
+            //    _configuration.AddDeserializedMapping(map, null);
+            //}
+            _configuration.AddDeserializedMapping(mapping, null);
 
 
             //log4net.Config.XmlConfigurator.Configure();
