@@ -13,7 +13,7 @@ namespace NHibernate.AspNet.Identity.DomainModel
     ///     http://devlicio.us/blogs/billy_mccafferty/archive/2007/04/25/using-equals-gethashcode-effectively.aspx
     /// </summary>
     [Serializable]
-    public abstract class EntityWithTypedId<TId> : ValidatableObject, IEntityWithTypedId<TId>
+    public abstract class EntityWithTypedId<TId> : ValidatableObject, IEntityWithTypedId<TId>, IEquatable<TId>
     {
         /// <summary>
         ///     To help ensure hash code uniqueness, a carefully selected random number multiplier 
@@ -150,6 +150,12 @@ namespace NHibernate.AspNet.Identity.DomainModel
         private bool HasSameNonDefaultIdAs(EntityWithTypedId<TId> compareTo)
         {
             return !this.IsTransient() && !compareTo.IsTransient() && this.Id.Equals(compareTo.Id);
+        }
+
+        public virtual bool Equals(TId other)
+        {
+            //throw new NotImplementedException();
+            return true;
         }
     }
 }

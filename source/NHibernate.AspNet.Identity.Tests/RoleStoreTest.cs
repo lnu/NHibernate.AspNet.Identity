@@ -33,23 +33,6 @@ namespace NHibernate.AspNet.Identity.Tests
         }
 
         [TestMethod]
-        public void WhenCeateRoleWithGuidIdAsync()
-        {
-            var roleManager = new RoleManager<IdentityRole<Guid>,Guid>(new RoleStore<IdentityRole<Guid>,Guid>(this._session));
-            var roleName = "Admin";
-
-            roleManager.Create(new IdentityRole<Guid>(roleName));
-
-            this._session.Flush();
-            this._session.Clear();
-
-            var actual = _session.Query<IdentityRole<Guid>>().FirstOrDefault(x => x.Name == roleName);
-
-            Assert.IsNotNull(actual);
-            Assert.AreEqual(roleName, actual.Name);
-        }
-
-        [TestMethod]
         public void WhenCeateRoleWithDefaultIdAsync()
         {
             var roleManager = new RoleManager<IdentityRole>(new RoleStore<IdentityRole>(this._session));

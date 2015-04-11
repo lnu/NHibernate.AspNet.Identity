@@ -11,11 +11,29 @@ using NHibernate.Linq;
 
 namespace NHibernate.AspNet.Identity
 {
+    public class UserStore<TUser> : UserStore<TUser, IdentityRole, string, IdentityUserLogin, IdentityUserRole, IdentityUserClaim>, IUserStore<TUser>, IUserStore<TUser, string>, IDisposable
+        where TUser : IdentityUser
+    {
+        /// <summary>
+        ///     Constructor
+        /// </summary>
+        /// <param name="context"></param>
+        public UserStore(ISession context)
+            : base(context)
+        {
+        }
+    }
     /// <summary>
     /// Implements IUserStore using NHibernate where TUser is the entity type of the user being stored
     /// </summary>
     /// <typeparam name="TUser"/>
-    public class UserStore<TUser> : IUserLoginStore<TUser>, IUserClaimStore<TUser>, IUserRoleStore<TUser>, IUserPasswordStore<TUser>, IUserSecurityStampStore<TUser>, IQueryableUserStore<TUser>, IUserStore<TUser>, IUserLockoutStore<TUser, string>, IUserEmailStore<TUser>, IUserPhoneNumberStore<TUser>, IUserTwoFactorStore<TUser, string>, IDisposable where TUser : IdentityUser
+    public class UserStore<TUser, TRole, TKey, TUserLogin, TUserRole, TUserClaim> : IUserLoginStore<TUser, TKey>, IUserClaimStore<TUser, TKey>, IUserRoleStore<TUser, TKey>, IUserPasswordStore<TUser, TKey>, IUserSecurityStampStore<TUser, TKey>, IQueryableUserStore<TUser, TKey>, IUserEmailStore<TUser, TKey>, IUserPhoneNumberStore<TUser, TKey>, IUserTwoFactorStore<TUser, TKey>, IUserLockoutStore<TUser, TKey>, IUserStore<TUser, TKey>, IDisposable
+        where TUser : IdentityUser<TKey, TUserLogin, TUserRole, TUserClaim>
+        where TRole : IdentityRole<TKey, TUserRole>
+        where TKey : IEquatable<TKey>
+        where TUserLogin : IdentityUserLogin, new()
+        where TUserRole : IdentityUserRole<TKey>, new()
+        where TUserClaim : IdentityUserClaim<TKey>, new()
     {
         private bool _disposed;
 
@@ -37,17 +55,25 @@ namespace NHibernate.AspNet.Identity
             this.Context = context;
         }
 
-        public virtual Task<TUser> FindByIdAsync(string userId)
+        public virtual Task<TUser> FindByIdAsync(TKey userId)
         {
+            // Generic id hack
+            // http://stackoverflow.com/questions/25229048/generic-repository-and-custom-type-of-entity-id
             this.ThrowIfDisposed();
-            //return Task.FromResult(this.Context.Get<TUser>((object)userId));
-            return this.GetUserAggregateAsync((TUser u) => u.Id.Equals(userId));
+            //return this.GetUserAggregateAsync((TUser u) => u.Id.Equals(userId));
+            return Task.Run(() =>
+                        {
+                            var user = this.Context.Get<TUser>(userId);
+                            NHibernateUtil.Initialize(user.Roles);
+                            NHibernateUtil.Initialize(user.Claims);
+                            NHibernateUtil.Initialize(user.Logins);
+                            return user;
+                        });
         }
 
         public virtual Task<TUser> FindByNameAsync(string userName)
         {
             this.ThrowIfDisposed();
-            //return Task.FromResult<TUser>(Queryable.FirstOrDefault<TUser>(Queryable.Where<TUser>(this.Context.Query<TUser>(), (Expression<Func<TUser, bool>>)(u => u.UserName.ToUpper() == userName.ToUpper()))));
             return this.GetUserAggregateAsync((TUser u) => u.UserName.ToUpper() == userName.ToUpper());
         }
 
@@ -222,9 +248,9 @@ namespace NHibernate.AspNet.Identity
                 throw new ArgumentNullException("claim");
             }
 
-            user.Claims.Add(new IdentityUserClaim()
+            user.Claims.Add(new TUserClaim()
             {
-                User = user,
+                UserId = user.Id,
                 ClaimType = claim.Type,
                 ClaimValue = claim.Value
             });
@@ -244,7 +270,7 @@ namespace NHibernate.AspNet.Identity
                 throw new ArgumentNullException("claim");
             }
 
-            foreach (IdentityUserClaim identityUserClaim in Enumerable.ToList<IdentityUserClaim>(Enumerable.Where<IdentityUserClaim>((IEnumerable<IdentityUserClaim>)user.Claims, (Func<IdentityUserClaim, bool>)(uc =>
+            foreach (var identityUserClaim in Enumerable.ToList<TUserClaim>(Enumerable.Where<TUserClaim>((IEnumerable<TUserClaim>)user.Claims, (Func<TUserClaim, bool>)(uc =>
             {
                 if (uc.ClaimValue == claim.Value)
                 {
@@ -274,15 +300,18 @@ namespace NHibernate.AspNet.Identity
                 throw new ArgumentException(Resources.ValueCannotBeNullOrEmpty, "role");
             }
 
-            IdentityRole identityRole = Queryable.SingleOrDefault<IdentityRole>(this.Context.Query<IdentityRole>(), (Expression<Func<IdentityRole, bool>>)(r => r.Name.ToUpper() == role.ToUpper()));
+            TRole identityRole = this.Context.Query<TRole>().SingleOrDefault(r => r.Name.ToUpper() == role.ToUpper());
             if (identityRole == null)
             {
                 throw new InvalidOperationException(string.Format((IFormatProvider)CultureInfo.CurrentCulture, Resources.RoleNotFound, new object[1] { (object)role }));
             }
-            user.Roles.Add(identityRole);
-      
-            return Task.FromResult<int>(0);
 
+            var ur = new TUserRole { UserId = user.Id, RoleId = identityRole.Id };
+
+            //user.Roles.Add(ur);
+            //identityRole.Users.Add(ur);
+            Context.Save(ur);
+            return Task.FromResult<int>(0);
         }
 
         public virtual Task RemoveFromRoleAsync(TUser user, string role)
@@ -297,10 +326,10 @@ namespace NHibernate.AspNet.Identity
                 throw new ArgumentException(Resources.ValueCannotBeNullOrEmpty, "role");
             }
 
-            IdentityRole identityUserRole = Enumerable.FirstOrDefault<IdentityRole>(Enumerable.Where<IdentityRole>((IEnumerable<IdentityRole>)user.Roles, (Func<IdentityRole, bool>)(r => r.Name.ToUpper() == role.ToUpper())));
+            TRole identityUserRole = Enumerable.FirstOrDefault<TRole>(Enumerable.Where<TRole>((IEnumerable<TRole>)user.Roles, (Func<TRole, bool>)(r => r.Name.ToUpper() == role.ToUpper())));
             if (identityUserRole != null)
             {
-                user.Roles.Remove(identityUserRole);
+                //user.Roles.Remove(identityUserRole);
             }
 
             return Task.FromResult<int>(0);
@@ -315,25 +344,36 @@ namespace NHibernate.AspNet.Identity
             }
             else
             {
-                return Task.FromResult<IList<string>>((IList<string>)Enumerable.ToList<string>(Enumerable.Select<IdentityRole, string>((IEnumerable<IdentityRole>)user.Roles, (Func<IdentityRole, string>)(u => u.Name))));
+                return Task.FromResult<IList<string>>((from userRole in user.Roles
+                                                       where userRole.UserId.Equals(user.Id)
+                                                       join role in Context.Query<TRole>() on userRole.RoleId equals role.Id
+                                                       select role.Name).ToList()
+                );
+                // return Task.FromResult<IList<string>>((IList<string>)Enumerable.ToList<string>(Enumerable.Select<IdentityRole, string>((IEnumerable<IdentityRole>)user.Roles, (Func<IdentityRole, string>)(u => u.Name))));
             }
         }
 
-        public virtual Task<bool> IsInRoleAsync(TUser user, string role)
+        public virtual async Task<bool> IsInRoleAsync(TUser user, string roleName)
         {
             this.ThrowIfDisposed();
             if ((object)user == null)
             {
                 throw new ArgumentNullException("user");
             }
-            if (string.IsNullOrWhiteSpace(role))
+            if (string.IsNullOrWhiteSpace(roleName))
             {
                 throw new ArgumentException(Resources.ValueCannotBeNullOrEmpty, "role");
             }
-            else
+
+            var role = Context.Query<TRole>().SingleOrDefault(r => r.Name.ToUpper() == roleName.ToUpper());
+            if (role != null)
             {
-                return Task.FromResult<bool>(Enumerable.Any<IdentityRole>((IEnumerable<IdentityRole>)user.Roles, (Func<IdentityRole, bool>)(r => r.Name.ToUpper() == role.ToUpper())));
+                //return Context.Query<TUserRole>().Any(ur => ur.RoleId.Equals(role.Id) && ur.UserId.Equals(user.Id));
+
+                //    //return Context.QueryOver<TUserRole>().Where(ur => ur.RoleId.Equals(roleId) && ur.UserId.Equals(userId)).RowCount()>0;
             }
+            //return Task.FromResult<bool>(Enumerable.Any<IdentityRole>((IEnumerable<IdentityRole>)user.Roles, (Func<IdentityRole, bool>)(r => r.Name.ToUpper() == role.ToUpper())));
+            return false;
         }
 
         public virtual Task SetPasswordHashAsync(TUser user, string passwordHash)

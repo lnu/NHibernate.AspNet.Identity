@@ -10,9 +10,9 @@ using NHibernate.AspNet.Identity.Helpers;
 
 namespace NHibernate.AspNet.Identity.Tests
 {
-    public sealed class SessionFactoryProvider
+    public sealed class GuidSessionFactoryProvider
     {
-        private static volatile SessionFactoryProvider _instance;
+        private static volatile GuidSessionFactoryProvider _instance;
         private static object _syncRoot = new Object();
 
         private Configuration _configuration;
@@ -23,7 +23,7 @@ namespace NHibernate.AspNet.Identity.Tests
         /// <summary>
         /// constructor configures a SessionFactory based on the configuration passed in
         /// </summary>
-        private SessionFactoryProvider()
+        private GuidSessionFactoryProvider()
         {
             Name = "NHibernate.AspNet.Identity";
 
@@ -56,9 +56,14 @@ namespace NHibernate.AspNet.Identity.Tests
             //var mapping = mapper.CompileMappingForEach(allEntities);
 
             var internalTypes = new[] {
-                typeof(ApplicationUser),
+                typeof(CustomUser), 
+                typeof(CustomRole), 
+                typeof(CustomUserRole), 
+                typeof(CustomUserLogin), 
+                typeof(CustomUserClaim), 
             };
-            var mapping = MappingHelper.GetIdentityMappings(internalTypes);
+
+            var mapping = MappingHelper.GetIdentityMappings<Guid>(internalTypes);
             Console.WriteLine(mapping.AsString());
             _configuration = new Configuration();
             _configuration.Configure("sqlite-nhibernate-config.xml");
@@ -74,7 +79,7 @@ namespace NHibernate.AspNet.Identity.Tests
             SessionFactory = _configuration.BuildSessionFactory();
         }
 
-        public static SessionFactoryProvider Instance
+        public static GuidSessionFactoryProvider Instance
         {
             get
             {
@@ -83,7 +88,7 @@ namespace NHibernate.AspNet.Identity.Tests
                     lock (_syncRoot)
                     {
                         if (_instance == null)
-                            _instance = new SessionFactoryProvider();
+                            _instance = new GuidSessionFactoryProvider();
                     }
                 }
                 return _instance;

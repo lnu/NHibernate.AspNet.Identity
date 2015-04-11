@@ -13,28 +13,29 @@ namespace NHibernate.AspNet.Identity.Helpers
         public static HbmMapping GetIdentityMappings(System.Type[] additionalTypes)
         {
             var baseEntityToIgnore = new[] { 
-                //typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<int>), 
-                //typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<string>), 
-                typeof(IdentityRole<string>)
+                typeof(IdentityRole<string,IdentityUserRole>),
+                typeof(IdentityUser<string, IdentityUserLogin,IdentityUserRole, IdentityUserClaim>),
+                typeof(IdentityUserClaim<string>),
+                typeof(IdentityUserRole<string>),
             };
 
-            var allEntities = new List<System.Type> { 
-                //typeof(IdentityUser), 
-                typeof(IdentityRole), 
-                //typeof(IdentityRole<TKey>), 
-                //typeof(IdentityUserLogin), 
-                //typeof(IdentityUserClaim),
-            };
+			var allEntities = new List<System.Type> { 
+				typeof(IdentityUser), 
+				typeof(IdentityRole), 
+				typeof(IdentityUserRole), 
+				typeof(IdentityUserLogin), 
+				typeof(IdentityUserClaim),
+			};
             allEntities.AddRange(additionalTypes);
 
             var mapper = new ConventionModelMapper();
             DefineBaseClass(mapper, baseEntityToIgnore.ToArray());
             mapper.IsComponent((type, declared) => typeof(NHibernate.AspNet.Identity.DomainModel.ValueObject).IsAssignableFrom(type));
 
-            //mapper.AddMapping<IdentityUserMap>();
+            mapper.AddMapping<IdentityUserMap>();
             mapper.AddMapping<IdentityRoleMap>();
-            //mapper.AddMapping<IdentityRoleMap<TKey>>();
-            //mapper.AddMapping<IdentityUserClaimMap>();
+            mapper.AddMapping<IdentityUserRoleMap>();
+            mapper.AddMapping<IdentityUserClaimMap>();
 
             return mapper.CompileMappingFor(allEntities);
         }
@@ -45,19 +46,17 @@ namespace NHibernate.AspNet.Identity.Helpers
         /// <param name="additionalTypes">Additional Types that are to be added to the mapping, this is useful for adding your ApplicationUser class</param>
         /// <returns></returns>
         public static HbmMapping GetIdentityMappings<TKey>(System.Type[] additionalTypes)
+        // where TRole : IdentityUserRole<TKey>
         {
             var baseEntityToIgnore = new[] { 
-                //typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<int>), 
-                //typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<string>), 
                 typeof(NHibernate.AspNet.Identity.DomainModel.EntityWithTypedId<TKey>)
             };
 
             var allEntities = new List<System.Type> { 
-                //typeof(IdentityUser), 
-                //typeof(IdentityRole), 
-                typeof(IdentityRole<TKey>), 
-                //typeof(IdentityUserLogin), 
-                //typeof(IdentityUserClaim),
+                typeof(IdentityUser<TKey,IdentityUserLogin,IdentityUserRole<TKey>,IdentityUserClaim<TKey>>), 
+                typeof(IdentityRole<TKey,IdentityUserRole<TKey>>), 
+                typeof(IdentityUserLogin), 
+                typeof(IdentityUserClaim<TKey>),
             };
             allEntities.AddRange(additionalTypes);
 
@@ -65,10 +64,10 @@ namespace NHibernate.AspNet.Identity.Helpers
             DefineBaseClass(mapper, baseEntityToIgnore.ToArray());
             mapper.IsComponent((type, declared) => typeof(NHibernate.AspNet.Identity.DomainModel.ValueObject).IsAssignableFrom(type));
 
-            //mapper.AddMapping<IdentityUserMap>();
-            mapper.AddMapping<IdentityRoleMap<TKey>>();
-            //mapper.AddMapping<IdentityRoleMap<TKey>>();
-            //mapper.AddMapping<IdentityUserClaimMap>();
+            mapper.AddMapping<IdentityUserMap<TKey, IdentityUserLogin, IdentityUserRole<TKey>, IdentityUserClaim<TKey>>>();
+            mapper.AddMapping<IdentityRoleMap<TKey, IdentityUserRole<TKey>>>();
+            mapper.AddMapping<IdentityUserRoleMap<TKey>>();
+            mapper.AddMapping<IdentityUserClaimMap<TKey>>();
 
             return mapper.CompileMappingFor(allEntities);
         }

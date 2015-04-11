@@ -10,7 +10,7 @@ namespace NHibernate.AspNet.Identity
     /// <summary>
     ///     Represents a Role entity
     /// </summary>
-    public class IdentityRole : IdentityRole<string>
+    public class IdentityRole : IdentityRole<string, IdentityUserRole>
     {
         /// <summary>
         ///     Constructor
@@ -31,30 +31,33 @@ namespace NHibernate.AspNet.Identity
         }
     }
 
-    public class IdentityRole<TKey> : EntityWithTypedId<TKey>, IRole<TKey>
+    public class IdentityRole<TKey, TUserRole> : EntityWithTypedId<TKey>, IRole<TKey>
+        where TUserRole : IdentityUserRole<TKey>
     {
         public virtual string Name { get; set; }
 
-        //public virtual ICollection<IdentityUser> Users { get; protected set; }
+        public virtual ICollection<TUserRole> Users { get; protected set; }
 
         public IdentityRole()
         {
-            //this.Users = new List<IdentityUser>();
+            this.Users = new List<TUserRole>();
         }
 
-        public IdentityRole(string roleName) : this()
+        public IdentityRole(string roleName)
+            : this()
         {
             this.Name = roleName;
         }
     }
 
-    public class IdentityRoleMap<TKey> : ClassMapping<IdentityRole<TKey>>
+    public class IdentityRoleMap<TKey, TUserRole> : ClassMapping<IdentityRole<TKey, TUserRole>>
+        where TUserRole : IdentityUserRole<TKey>
     {
         public IdentityRoleMap()
         {
             IGeneratorDef generator;
             var genericType = this.GetType().GenericTypeArguments[0].Name;
-            switch(genericType)
+            switch (genericType)
             {
                 case "Guid":
                     this.Id(x => x.Id, m => m.Generator(Generators.GuidComb));
@@ -70,20 +73,21 @@ namespace NHibernate.AspNet.Identity
                 map.NotNullable(true);
                 map.Unique(true);
             });
-            //this.Bag(x => x.Users, map =>
-            //{
-            //    map.Table("AspNetUserRoles");
-            //    map.Cascade(Cascade.None);
-            //    map.Key(k => k.Column("RoleId"));
-            //}, rel => rel.ManyToMany(p => p.Column("UserId")));
+            this.Bag(x => x.Users, map =>
+            {
+                //map.Table("AspNetUserRoles");
+                map.Key(k => k.Column("RoleId"));
+                map.Cascade(Cascade.DeleteOrphans);
+                map.Inverse(true);
+            }, rel => rel.OneToMany());
         }
     }
 
-    public class IdentityRoleMap : ClassMapping<IdentityRole> 
+    public class IdentityRoleMap : ClassMapping<IdentityRole>
     {
         public IdentityRoleMap()
         {
-            
+
             this.Table("AspNetRoles");
             this.Id(x => x.Id, m => m.Generator(new UUIDHexCombGeneratorDef("D")));
             this.Property(x => x.Name, map =>
@@ -92,12 +96,12 @@ namespace NHibernate.AspNet.Identity
                 map.NotNullable(true);
                 map.Unique(true);
             });
-            //this.Bag(x => x.Users, map =>
-            //{
-            //    map.Table("AspNetUserRoles");
-            //    map.Cascade(Cascade.None);
-            //    map.Key(k => k.Column("RoleId"));
-            //}, rel => rel.ManyToMany(p => p.Column("UserId")));
+            this.Bag(x => x.Users, map =>
+            {
+                map.Table("AspNetUserRoles");
+                map.Cascade(Cascade.None);
+                map.Key(k => k.Column("RoleId"));
+            }, rel => rel.ManyToMany(p => p.Column("UserId")));
         }
     }
 }

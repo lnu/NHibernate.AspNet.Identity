@@ -69,6 +69,7 @@
     <Compile Include="Helpers\MappingHelper.cs" />
     <Compile Include="IdentityRole.cs" />
     <Compile Include="IdentityUser.cs" />
+    <Compile Include="IdentityUserRole.cs" />
     <Compile Include="IdentityUserClaim.cs">
       <SubType>Code</SubType>
     </Compile>

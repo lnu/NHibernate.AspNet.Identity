@@ -7,7 +7,7 @@ namespace NHibernate.AspNet.Identity
     /// <summary>
     ///     EntityType that represents one specific user claim
     /// </summary>
-    public class IdentityUserClaim : IdentityUserClaim<string>
+    public class IdentityUserRole : IdentityUserRole<string>
     {
     }
 
@@ -15,33 +15,30 @@ namespace NHibernate.AspNet.Identity
     ///     EntityType that represents one specific user claim
     /// </summary>
     /// <typeparam name="TKey"></typeparam>
-    public class IdentityUserClaim<TKey>:EntityWithTypedId<TKey>
+    public class IdentityUserRole<TKey> : EntityWithTypedId<TKey>
     {
-        public virtual string ClaimType { get; set; }
-
-        public virtual string ClaimValue { get; set; }
-
         public virtual TKey UserId { get; set; }
+
+        public virtual TKey RoleId { get; set; }
+
     }
 
-    public class IdentityUserClaimMap : ClassMapping<IdentityUserClaim>
+    public class IdentityUserRoleMap : ClassMapping<IdentityUserRole>
     {
-        public IdentityUserClaimMap()
+        public IdentityUserRoleMap()
         {
-            Table("AspNetUserClaims");
+            Table("AspNetUserRoles");
             Id(x => x.Id, m => m.Generator(new UUIDHexCombGeneratorDef("D")));
-            Property(x => x.ClaimType);
-            Property(x => x.ClaimValue);
-            //ManyToOne(x => x.User, m => m.Column("UserId"));
         }
-
     }
-          public class IdentityUserClaimMap<TKey> : ClassMapping<IdentityUserClaim<TKey>>
+
+
+    public class IdentityUserRoleMap<TKey> : ClassMapping<IdentityUserRole<TKey>>
     {
-        public IdentityUserClaimMap()
+        public IdentityUserRoleMap()
         {
-            Table("AspNetUserClaims");
-                          IGeneratorDef generator;
+            Table("AspNetUserRoles");
+            IGeneratorDef generator;
             var genericType = this.GetType().GenericTypeArguments[0].Name;
             switch (genericType)
             {
@@ -52,9 +49,6 @@ namespace NHibernate.AspNet.Identity
                     this.Id(x => x.Id, m => m.Generator(new UUIDHexCombGeneratorDef("D")));
                     break;
             }
-            Property(x => x.ClaimType);
-            Property(x => x.ClaimValue);
-            //ManyToOne(x => x.User, m => m.Column("UserId"));
         }
     }
 
