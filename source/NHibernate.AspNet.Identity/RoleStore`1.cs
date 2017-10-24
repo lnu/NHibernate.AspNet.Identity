@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
 using NHibernate.Linq;
@@ -20,55 +19,49 @@ namespace NHibernate.AspNet.Identity
 
         public RoleStore(ISession context)
         {
-            if (context == null)
-                throw new ArgumentNullException("context");
-
-            ShouldDisposeSession = true;
-            this.Context = context;
+            this.ShouldDisposeSession = true;
+            this.Context = context ?? throw new ArgumentNullException("context");
         }
 
         public virtual Task<TRole> FindByIdAsync(string roleId)
         {
             this.ThrowIfDisposed();
-            return Task.FromResult(Context.Get<TRole>((object)roleId));
+            return this.Context.GetAsync<TRole>(roleId);
         }
 
-        public virtual Task<TRole> FindByNameAsync(string roleName)
+        public virtual async Task<TRole> FindByNameAsync(string roleName)
         {
             this.ThrowIfDisposed();
-            return Task.FromResult<TRole>(Queryable.FirstOrDefault<TRole>(Queryable.Where<TRole>(this.Context.Query<TRole>(), (Expression<Func<TRole, bool>>)(u => u.Name.ToUpper() == roleName.ToUpper()))));
+            return await this.Context.Query<TRole>().FirstOrDefaultAsync(u => u.Name.ToUpper() == roleName.ToUpper());
         }
 
-        public virtual  Task CreateAsync(TRole role)
+        public virtual async Task CreateAsync(TRole role)
         {
             this.ThrowIfDisposed();
-            if ((object)role == null)
+            if (role == null)
                 throw new ArgumentNullException("role");
-            Context.Save(role);
-            Context.Flush();
-            return Task.FromResult(0);
+            this.Context.Save(role);
+            await this.Context.FlushAsync();
         }
 
-        public virtual Task DeleteAsync(TRole role)
+        public virtual async Task DeleteAsync(TRole role)
         {
             this.ThrowIfDisposed();
             if (role == null)
             {
                 throw new ArgumentNullException("role");
             }
-            Context.Delete(role);
-            Context.Flush();
-            return Task.FromResult(0);
+            this.Context.Delete(role);
+            await this.Context.FlushAsync();
         }
 
-        public virtual Task UpdateAsync(TRole role)
+        public virtual async Task UpdateAsync(TRole role)
         {
             this.ThrowIfDisposed();
-            if ((object)role == null)
+            if (role == null)
                 throw new ArgumentNullException("role");
-            Context.Update(role);
-            Context.Flush();
-            return Task.FromResult(0);
+            this.Context.Update(role);
+            await this.Context.FlushAsync();
         }
 
         private void ThrowIfDisposed()
@@ -80,15 +73,15 @@ namespace NHibernate.AspNet.Identity
         public void Dispose()
         {
             this.Dispose(true);
-            GC.SuppressFinalize((object)this);
+            GC.SuppressFinalize(this);
         }
 
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing && !this._disposed && ShouldDisposeSession)
+            if (disposing && !this._disposed && this.ShouldDisposeSession)
                 this.Context.Dispose();
             this._disposed = true;
-            this.Context = (ISession)null;
+            this.Context = null;
         }
 
         public IQueryable<TRole> Roles
