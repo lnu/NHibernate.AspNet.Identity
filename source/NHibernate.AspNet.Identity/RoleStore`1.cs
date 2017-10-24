@@ -19,8 +19,10 @@ namespace NHibernate.AspNet.Identity
 
         public RoleStore(ISession context)
         {
+            if (context == null)
+                throw new ArgumentNullException("context");
             this.ShouldDisposeSession = true;
-            this.Context = context ?? throw new ArgumentNullException("context");
+            this.Context = context;
         }
 
         public virtual Task<TRole> FindByIdAsync(string roleId)
